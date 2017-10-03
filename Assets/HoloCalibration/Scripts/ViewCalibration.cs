@@ -34,6 +34,11 @@ public class ViewCalibration : MonoBehaviour
     public GameObject ExitTarget;
 
     /// <summary>
+    /// 背景を白塗りでふさぐかどうか設定します。
+    /// </summary>
+    public bool IsBackGround;
+
+    /// <summary>
     ///     調整終了後に表示する本来のアプリケーションのシーン名を設定します。
     /// </summary>
     public string SceneName;
@@ -46,13 +51,11 @@ public class ViewCalibration : MonoBehaviour
     private GameObject[] _topLeftLines;
     private GameObject[] _topRightLines;
     private GameObject _exitTarget;
+    private GameObject _backGround;
 
     // Use this for initialization
     private void Start()
     {
-        gameObject.transform.GetChild(0).transform.gameObject.SetActive(true);
-        var child = gameObject.transform.GetChild(0);
-        child.GetComponent<Canvas>().worldCamera = Camera.main;
         marksCount = MarkObjectSets.Length;
         _bottomRightLines = new GameObject[marksCount];
         _bottomLeftLines = new GameObject[marksCount];
@@ -74,6 +77,20 @@ public class ViewCalibration : MonoBehaviour
         SetLineObjects(Camera.main.ViewportToWorldPoint(new Vector3(1f, 1f, 2f)), _topRightLines, -1, -1);
         SetLineObjects(Camera.main.ViewportToWorldPoint(new Vector3(0f, 1f, 2f)), _topLeftLines, 1, -1);
 
+        if (IsBackGround)
+        {
+            _backGround = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            _backGround.transform.position = Camera.main.transform.forward * 3f;
+            _backGround.transform.SetParent(Camera.main.transform);
+
+            var width = Vector3.Distance(Camera.main.ViewportToWorldPoint(new Vector3(1f, 0f, 3f)),
+                Camera.main.ViewportToWorldPoint(new Vector3(0f, 0f, 3f)));
+            var height = Vector3.Distance(Camera.main.ViewportToWorldPoint(new Vector3(0f, 1f, 3f)),
+                Camera.main.ViewportToWorldPoint(new Vector3(0f, 0f, 3f)));
+            _backGround.transform.localScale = new Vector3(width, height, 1f);
+            _backGround.transform.rotation= new Quaternion(0f,0f,0f,0f);
+        }
+        
         _gestureRecognizer = new GestureRecognizer();
         _gestureRecognizer.TappedEvent += _gestureRecognizer_TappedEvent;
         _gestureRecognizer.StartCapturingGestures();
@@ -105,11 +122,10 @@ public class ViewCalibration : MonoBehaviour
         }
 
 
-        if (gameObject.transform.childCount > 0)
+        if (_backGround != null)
         {
-            var child = gameObject.transform.GetChild(0);
-            gameObject.transform.DetachChildren();
-            Destroy(child.gameObject);
+            Destroy(_backGround);
+            _backGround = null;
         }
 
         _bottomRightLines = new GameObject[0];
@@ -158,7 +174,7 @@ public class ViewCalibration : MonoBehaviour
     {
         var primitive = GameObject.Instantiate(Target);
         primitive.transform.position =
-            Camera.main.ViewportToWorldPoint(new Vector3(Random.value, Random.value, 2f))*0.7f;
+            Camera.main.ViewportToWorldPoint(new Vector3(Random.value, Random.value, 2f))*0.5f;
         primitive.name = "Target";
     }
 
@@ -170,14 +186,17 @@ public class ViewCalibration : MonoBehaviour
 
     private void SetLineObjects(Vector3 viewportToWorldPoint, GameObject[] markObjects, int dirX, int dirY)
     {
-        viewportToWorldPoint = new Vector3(viewportToWorldPoint.x, viewportToWorldPoint.y, 2f);
-
+        Debug.Log("d:"+viewportToWorldPoint);
+        viewportToWorldPoint = new Vector3(viewportToWorldPoint.x, viewportToWorldPoint.y, viewportToWorldPoint.z);
+        viewportToWorldPoint = Camera.main.transform.InverseTransformPoint(viewportToWorldPoint);
         var pos2 = viewportToWorldPoint * 1f / (marksCount + 1);
         for (var i = 1; i <= marksCount; i++)
         {
             var transform1 = markObjects[i - 1].transform;
-            transform1.position = new Vector3(pos2.x * i + transform1.localScale.x / 2f * dirX,
-                pos2.y * i + transform1.localScale.y / 2f * dirY, 2f);
+            transform1.localPosition = new Vector3(pos2.x * i + transform1.localScale.x / 2f * dirX,
+                pos2.y * i + transform1.localScale.y / 2f * dirY, transform1.localScale.z * i);
+            transform1.position += Camera.main.transform.forward * 2f;
+            transform1.rotation = new Quaternion(0f, 0f, 0f, 0f);
         }
     }
 }
