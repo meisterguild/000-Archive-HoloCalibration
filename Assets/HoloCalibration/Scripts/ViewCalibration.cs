@@ -52,6 +52,7 @@ public class ViewCalibration : MonoBehaviour
     private GameObject[] _topRightLines;
     private GameObject _exitTarget;
     private GameObject _backGround;
+    private float _inteval;
 
     // Use this for initialization
     private void Start()
@@ -105,7 +106,10 @@ public class ViewCalibration : MonoBehaviour
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             OnClickHandler(ray);
         }
-        
+        if (isInitialized)
+        {
+            _inteval += Time.deltaTime;
+        }
     }
 
     /// <summary>
@@ -140,6 +144,7 @@ public class ViewCalibration : MonoBehaviour
         DestroyCalibration();
         if (EnabledTutorial)
         {
+
             if (!isInitialized)
             {
                 CreateTarget();
@@ -152,6 +157,11 @@ public class ViewCalibration : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit))
             {
+
+                if ( _inteval < 1.0)
+                {
+                    return;
+                }
                 if ("Target".Equals(hit.transform.name))
                 {
                     Destroy(hit.transform.gameObject);
@@ -186,10 +196,9 @@ public class ViewCalibration : MonoBehaviour
 
     private void SetLineObjects(Vector3 viewportToWorldPoint, GameObject[] markObjects, int dirX, int dirY)
     {
-        Debug.Log("d:"+viewportToWorldPoint);
         viewportToWorldPoint = new Vector3(viewportToWorldPoint.x, viewportToWorldPoint.y, viewportToWorldPoint.z);
         viewportToWorldPoint = Camera.main.transform.InverseTransformPoint(viewportToWorldPoint);
-        var pos2 = viewportToWorldPoint * 1f / (marksCount + 1);
+        var pos2 = viewportToWorldPoint * 1f / (marksCount-1);
         for (var i = 1; i <= marksCount; i++)
         {
             var transform1 = markObjects[i - 1].transform;
